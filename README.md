@@ -3,8 +3,21 @@
 This kit runs **AWS Serverless Application Model (SAM)** on **LocalStack** (CloudFormation in Docker).
 It provisions:
 - API Gateway
-- 1 Lambdas (Health check)
+- 3 Lambdas (Create, Get, Worker) + Health check
 - DynamoDB table
+- SQS queue + DLQ
+
+## Architecture
+API Gateway
+→ CreateTransaction Lambda
+→ DynamoDB (source of truth)
+→ SQS queue
+→ ProcessTransaction Lambda
+→ DynamoDB status update
+
+Transaction lifecycle: `PENDING → PROCESSING → COMPLETED | FAILED`
+
+Idempotency: Provide an `Idempotency-Key` header to ensure safe retries.
 
 ## Prereqs
 - Docker + Docker Compose
@@ -34,6 +47,16 @@ curl "$API_BASE/transactions/<id>"
 ## Run unit tests
 ```bash
 docker compose run --rm deploy npm test
+```
+
+## Run integration tests (LocalStack)
+Integration tests call the deployed API and wait for async processing.
+```bash
+docker compose run --rm deploy env RUN_INTEGRATION_TESTS=1 npm test
+```
+If you already have the API base URL, you can set `API_BASE` to skip stack lookup:
+```bash
+docker compose run --rm deploy env RUN_INTEGRATION_TESTS=1 API_BASE="$API_BASE" npm test
 ```
 
 ## Tear down

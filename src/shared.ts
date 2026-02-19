@@ -9,8 +9,18 @@ export const QUEUE_URL = process.env.QUEUE_URL ?? "";
  * LocalStack endpoint support:
  * We rely on AWS_ENDPOINT_URL when present.
  */
+function resolveEndpoint() {
+  if (process.env.AWS_ENDPOINT_URL) {
+    return process.env.AWS_ENDPOINT_URL;
+  }
+  if (process.env.LOCALSTACK_HOSTNAME) {
+    return `http://${process.env.LOCALSTACK_HOSTNAME}:4566`;
+  }
+  return undefined;
+}
+
 function getDdbClient(): DynamoDBDocumentClient {
-  const endpoint = process.env.AWS_ENDPOINT_URL;
+  const endpoint = resolveEndpoint();
   const ddb = new DynamoDBClient({
     endpoint,
     region: process.env.AWS_DEFAULT_REGION ?? "us-east-1",
@@ -23,7 +33,7 @@ function getDdbClient(): DynamoDBDocumentClient {
 }
 
 function getSqsClient(): SQSClient {
-  const endpoint = process.env.AWS_ENDPOINT_URL;
+  const endpoint = resolveEndpoint();
   return new SQSClient({
     endpoint,
     region: process.env.AWS_DEFAULT_REGION ?? "us-east-1",
