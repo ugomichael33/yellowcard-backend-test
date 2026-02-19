@@ -67,7 +67,8 @@ export function decideOutcome(): ProcessOutcome {
 
 export async function processTransaction(
   id: string,
-  outcomeDecider: () => ProcessOutcome = decideOutcome
+  outcomeDecider: () => ProcessOutcome = decideOutcome,
+  delayMs = 0
 ) {
   if (!canTransition("PENDING", "PROCESSING")) {
     throw new Error("Invalid transition");
@@ -85,6 +86,10 @@ export async function processTransaction(
     return { processed: false };
   }
 
+  if (delayMs > 0) {
+    await sleep(delayMs);
+  }
+
   const outcome = outcomeDecider();
   const nextStatus: TransactionStatus = outcome.status;
   if (!canTransition("PROCESSING", nextStatus)) {
@@ -100,4 +105,8 @@ export async function processTransaction(
   });
 
   return { processed: true, status: nextStatus };
+}
+
+function sleep(ms: number) {
+  return new Promise<void>((resolve) => setTimeout(resolve, ms));
 }

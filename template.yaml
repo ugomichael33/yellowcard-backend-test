@@ -136,6 +136,9 @@ Resources:
           - src/processTransaction.ts
     Properties:
       Handler: processTransaction.handler
+      Environment:
+        Variables:
+          PROCESSING_DELAY_MS: "500"
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref TransactionsTable
