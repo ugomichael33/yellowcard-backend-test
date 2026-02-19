@@ -35,6 +35,19 @@ Resources:
         - AttributeName: id
           KeyType: HASH
 
+  TransactionDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: transaction-dlq
+
+  TransactionQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: transaction-queue
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt TransactionDLQ.Arn
+        maxReceiveCount: 3
+
 
   HealthCheckFunction:
     Type: AWS::Serverless::Function
@@ -55,6 +68,79 @@ Resources:
             RestApiId: !Ref Api
             Path: /health
             Method: GET
+
+  CreateTransactionFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: false
+        Target: es2022
+        Sourcemap: true
+        EntryPoints:
+          - src/createTransaction.ts
+    Properties:
+      Handler: createTransaction.handler
+      Environment:
+        Variables:
+          QUEUE_URL: !Ref TransactionQueue
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TransactionsTable
+        - SQSSendMessagePolicy:
+            QueueName: !GetAtt TransactionQueue.QueueName
+      Events:
+        CreateTransaction:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /transactions
+            Method: POST
+
+  GetTransactionFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: false
+        Target: es2022
+        Sourcemap: true
+        EntryPoints:
+          - src/getTransaction.ts
+    Properties:
+      Handler: getTransaction.handler
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref TransactionsTable
+      Events:
+        GetTransaction:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /transactions/{id}
+            Method: GET
+
+  ProcessTransactionFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: false
+        Target: es2022
+        Sourcemap: true
+        EntryPoints:
+          - src/processTransaction.ts
+    Properties:
+      Handler: processTransaction.handler
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TransactionsTable
+      Events:
+        TransactionQueue:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt TransactionQueue.Arn
+            BatchSize: 1
 
 
 Outputs:
