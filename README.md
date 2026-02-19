@@ -59,6 +59,10 @@ If you already have the API base URL, you can set `API_BASE` to skip stack looku
 docker compose run --rm deploy env RUN_INTEGRATION_TESTS=1 API_BASE="$API_BASE" npm test
 ```
 
+## Suggested CI split
+- `npm test` (unit tests) on every push/PR.
+- `npm run test:integration` only in a dedicated job with LocalStack available.
+
 ## Tear down
 ```bash
 docker compose run --rm deploy ./scripts/destroy.sh
