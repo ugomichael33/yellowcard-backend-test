@@ -1,0 +1,31 @@
+services:
+  localstack:
+    image: localstack/localstack:3
+    environment:
+      - SERVICES=cloudformation,apigateway,lambda,dynamodb,s3,iam,logs,sts
+      - DEBUG=0
+      - AWS_DEFAULT_REGION=us-east-1
+    ports:
+      - "4566:4566"
+    volumes:
+      - localstack_data:/var/lib/localstack
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  deploy:
+    image: public.ecr.aws/sam/build-nodejs20.x:latest
+    working_dir: /app
+    volumes:
+      - .:/app
+    environment:
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+      - AWS_DEFAULT_REGION=us-east-1
+      - AWS_ENDPOINT_URL=http://localstack:4566
+      - SAM_CLI_TELEMETRY=0
+    depends_on:
+      - localstack
+    entrypoint: ["sh","-lc"]
+    command: ["./scripts/deploy.sh"]
+
+volumes:
+  localstack_data:
