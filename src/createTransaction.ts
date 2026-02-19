@@ -36,7 +36,10 @@ export async function handler(event: APIGatewayProxyEventV2) {
       throw new Error("QUEUE_URL is not configured");
     }
 
-    if (created) {
+    const shouldEnqueue =
+      created || (transaction.status === "PENDING" && transaction.idempotencyKey);
+
+    if (shouldEnqueue) {
       await sqs.send(
         new SendMessageCommand({
           QueueUrl: QUEUE_URL,

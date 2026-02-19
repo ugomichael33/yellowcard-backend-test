@@ -20,7 +20,7 @@ Resources:
       EndpointConfiguration: REGIONAL
       Cors:
         AllowMethods: "'GET,POST,OPTIONS'"
-        AllowHeaders: "'Content-Type'"
+        AllowHeaders: "'Content-Type,Idempotency-Key,X-Idempotency-Key'"
         AllowOrigin: "'*'"
 
   TransactionsTable:
@@ -92,7 +92,7 @@ Resources:
         - DynamoDBCrudPolicy:
             TableName: !Ref TransactionsTable
         - SQSSendMessagePolicy:
-            QueueName: !GetAtt TransactionQueue.QueueName
+            QueueName: transaction-queue
       Events:
         CreateTransaction:
           Type: Api
