@@ -1,9 +1,14 @@
 import { jest } from "@jest/globals";
+import type {
+  createTransaction as createTransactionFn,
+  getTransaction as getTransactionFn,
+  updateStatus as updateStatusFn,
+} from "../src/repository/transactionRepository";
 
 const repo = {
-  createTransaction: jest.fn(),
-  getTransaction: jest.fn(),
-  updateStatus: jest.fn(),
+  createTransaction: jest.fn() as jest.MockedFunction<typeof createTransactionFn>,
+  getTransaction: jest.fn() as jest.MockedFunction<typeof getTransactionFn>,
+  updateStatus: jest.fn() as jest.MockedFunction<typeof updateStatusFn>,
 };
 
 jest.unstable_mockModule("../src/repository/transactionRepository", () => ({

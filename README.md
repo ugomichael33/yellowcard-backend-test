@@ -20,6 +20,13 @@ Transaction lifecycle: `PENDING → PROCESSING → COMPLETED | FAILED`
 Idempotency: Provide an `Idempotency-Key` header to ensure safe retries.
 Processing delay: The worker simulates async work with `PROCESSING_DELAY_MS` (default `500ms`).
 
+## Design & Tradeoffs
+- Event-driven async processing (API → DynamoDB → SQS → Worker) for durability and decoupling.
+- Idempotency via `Idempotency-Key` to prevent duplicate transactions on retries.
+- Conditional writes in DynamoDB enforce safe state transitions.
+- DLQ configured for failed async processing.
+- LocalStack-first configuration for assessment; production would remove fixed `AWS_ENDPOINT_URL`.
+
 ## Prereqs
 - Docker + Docker Compose
 

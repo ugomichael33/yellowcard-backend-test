@@ -1,4 +1,6 @@
 import { CloudFormationClient, DescribeStacksCommand } from "@aws-sdk/client-cloudformation";
+import { describe, expect, jest, test } from "@jest/globals";
+import { existsSync } from "node:fs";
 
 const runIntegration = process.env.RUN_INTEGRATION_TESTS === "1";
 
@@ -11,7 +13,7 @@ const credentials = {
 
 async function getApiBaseUrl(): Promise<string> {
   if (process.env.API_BASE) {
-    return process.env.API_BASE.replace(/\/$/, "");
+    return normalizeApiBase(process.env.API_BASE);
   }
   const client = new CloudFormationClient({ endpoint, region, credentials });
   const response = await client.send(
@@ -22,7 +24,20 @@ async function getApiBaseUrl(): Promise<string> {
   if (!apiBase) {
     throw new Error("ApiBaseUrl output not found. Ensure stack is deployed.");
   }
-  return apiBase.replace(/\/$/, "");
+  return normalizeApiBase(apiBase);
+}
+
+function normalizeApiBase(apiBase: string) {
+  let normalized = apiBase.replace(/\/$/, "");
+  if (isRunningInDocker()) {
+    normalized = normalized.replace("http://localhost:", "http://host.docker.internal:");
+    normalized = normalized.replace("http://127.0.0.1:", "http://host.docker.internal:");
+  }
+  return normalized;
+}
+
+function isRunningInDocker() {
+  return existsSync("/.dockerenv");
 }
 
 async function postJson(url: string, payload: unknown, headers?: Record<string, string>) {

@@ -148,8 +148,6 @@ export async function updateStatus(params: {
     ":to": to,
     ":updatedAt": updatedAt,
     ":from": from,
-    ":zero": 0,
-    ":inc": 1,
   };
 
   if (typeof errorReason === "string") {
@@ -158,6 +156,8 @@ export async function updateStatus(params: {
   }
 
   if (incrementAttempts) {
+    expressionValues[":zero"] = 0;
+    expressionValues[":inc"] = 1;
     updateExpressions.push(
       "processingAttempts = if_not_exists(processingAttempts, :zero) + :inc"
     );

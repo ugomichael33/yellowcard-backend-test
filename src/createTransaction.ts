@@ -1,6 +1,6 @@
 import type { APIGatewayProxyEventV2 } from "aws-lambda";
 import { SendMessageCommand } from "@aws-sdk/client-sqs";
-import { QUEUE_URL, json, sqs } from "./shared";
+import { QUEUE_URL, json, logMetric, sqs } from "./shared";
 import { createTransaction } from "./service/transactionService";
 
 export async function handler(event: APIGatewayProxyEventV2) {
@@ -46,6 +46,12 @@ export async function handler(event: APIGatewayProxyEventV2) {
           MessageBody: JSON.stringify({ transactionId: transaction.id }),
         })
       );
+      logMetric({
+        namespace: "TransactionService",
+        name: "TransactionCreated",
+        value: 1,
+        dimensions: { Status: transaction.status },
+      });
       const logLabel = created ? "TransactionCreated" : "TransactionRequeued";
       console.log(
         logLabel,

@@ -53,9 +53,40 @@ export function json(statusCode: number, body: unknown) {
     headers: {
       "content-type": "application/json",
       "access-control-allow-origin": "*",
-      "access-control-allow-headers": "content-type,x-idempotency-key",
+      "access-control-allow-headers":
+        "content-type,x-idempotency-key,idempotency-key",
       "access-control-allow-methods": "GET,POST,OPTIONS",
     },
     body: JSON.stringify(body),
   };
+}
+
+type MetricDimension = Record<string, string>;
+
+export function logMetric(params: {
+  namespace: string;
+  name: string;
+  value: number;
+  unit?: "Count" | "Milliseconds";
+  dimensions?: MetricDimension;
+}) {
+  const { namespace, name, value, unit = "Count", dimensions } = params;
+  const dimensionsKeys = dimensions ? Object.keys(dimensions) : [];
+
+  const emfPayload = {
+    ...(dimensions ?? {}),
+    [name]: value,
+    _aws: {
+      Timestamp: Date.now(),
+      CloudWatchMetrics: [
+        {
+          Namespace: namespace,
+          Dimensions: dimensionsKeys.length ? [dimensionsKeys] : [],
+          Metrics: [{ Name: name, Unit: unit }],
+        },
+      ],
+    },
+  };
+
+  console.log(JSON.stringify(emfPayload));
 }

@@ -1,4 +1,5 @@
 import type { SQSEvent } from "aws-lambda";
+import { logMetric } from "./shared";
 import { processTransaction } from "./service/transactionService";
 
 type MessageBody = {
@@ -23,6 +24,14 @@ export async function handler(event: SQSEvent) {
         "TransactionProcessed",
         JSON.stringify({ transactionId, ...result })
       );
+      if (result.processed && result.status) {
+        logMetric({
+          namespace: "TransactionService",
+          name: "TransactionProcessed",
+          value: 1,
+          dimensions: { Status: result.status },
+        });
+      }
     } catch (err: any) {
       console.error("processTransaction error", err);
       throw err;
