@@ -1,32 +1,47 @@
-import { PutCommand, QueryCommand } from "@aws-sdk/lib-dynamodb";
-import { v4 as uuidv4 } from "uuid";
 import type { APIGatewayProxyEventV2 } from "aws-lambda";
-import { ddbDoc, TABLE_NAME, json } from "./shared";
-
+import { SendMessageCommand } from "@aws-sdk/client-sqs";
+import { QUEUE_URL, json, sqs } from "./shared";
+import { createTransaction } from "./service/transactionService";
 
 export async function handler(event: APIGatewayProxyEventV2) {
   try {
     const body = event.body ? JSON.parse(event.body) : {};
+    const idempotencyKey =
+      event.headers?.["x-idempotency-key"] ??
+      event.headers?.["X-Idempotency-Key"] ??
+      event.headers?.["idempotency-key"] ??
+      event.headers?.["Idempotency-Key"];
 
-    const tx = {
-      id: uuidv4(),
-      amount: body.data.amount,
-      currency: body.data.currency,
-      reference: body.data.reference,
-      createdAt: new Date().toISOString(),
-    };
+    const { transaction, created } = await createTransaction({
+      amount: body.amount,
+      currency: body.currency,
+      reference: body.reference,
+      idempotencyKey: typeof idempotencyKey === "string" ? idempotencyKey : undefined,
+    });
 
-    await ddbDoc.send(new PutCommand({
-      TableName: TABLE_NAME,
-      Item: tx,
-      ConditionExpression: "attribute_not_exists(id)",
-    }));
+    if (created) {
+      await sqs.send(
+        new SendMessageCommand({
+          QueueUrl: QUEUE_URL,
+          MessageBody: JSON.stringify({ transactionId: transaction.id }),
+        })
+      );
+      console.log(
+        "TransactionCreated",
+        JSON.stringify({ transactionId: transaction.id, status: transaction.status })
+      );
+    } else {
+      console.log(
+        "TransactionIdempotentReplay",
+        JSON.stringify({ transactionId: transaction.id, status: transaction.status })
+      );
+    }
 
-    console.log("Transaction Created", JSON.stringify({ type: "TransactionCreated", payload: tx }));
-
-    return json(201, tx);
+    return json(created ? 201 : 200, transaction);
   } catch (err: any) {
     console.error("createTransaction error", err);
-    return json(500, { error: "InternalError" });
+    const statusCode = err?.statusCode ?? 500;
+    const message = statusCode === 400 ? err.message : "InternalError";
+    return json(statusCode, { error: message });
   }
 }

@@ -1,25 +1,24 @@
-import { GetCommand } from "@aws-sdk/lib-dynamodb";
 import type { APIGatewayProxyEvent } from "aws-lambda";
-import { ddbDoc, TABLE_NAME, json } from "./shared";
+import { json } from "./shared";
+import { getTransactionById } from "./service/transactionService";
 
 
 export async function handler(event: APIGatewayProxyEvent | any) {
   try {
-    const path =
-        event?.path ??
-        event?.rawPath ??
-        event?.requestContext?.http?.path ??
-        "";
-
     const id =
         event?.pathParameters?.id ??
         event?.pathParameters?.["id"];
 
-    const result = await ddbDoc.send(
-        new GetCommand({ TableName: TABLE_NAME, Key: { id } })
-    );
+    if (!id) {
+      return json(400, { error: "id is required" });
+    }
 
-    return json(200, result.Item);
+    const result = await getTransactionById(id);
+    if (!result) {
+      return json(404, { error: "NotFound" });
+    }
+
+    return json(200, result);
   } catch (err: any) {
     console.error("getTransaction error", err);
     return json(500, { error: "InternalError" });
