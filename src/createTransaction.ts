@@ -37,7 +37,7 @@ export async function handler(event: APIGatewayProxyEventV2) {
     }
 
     const shouldEnqueue =
-      created || (transaction.status === "PENDING" && transaction.idempotencyKey);
+      created || (transaction.status === "PENDING" && typeof idempotencyKey === "string");
 
     if (shouldEnqueue) {
       await sqs.send(
@@ -46,8 +46,9 @@ export async function handler(event: APIGatewayProxyEventV2) {
           MessageBody: JSON.stringify({ transactionId: transaction.id }),
         })
       );
+      const logLabel = created ? "TransactionCreated" : "TransactionRequeued";
       console.log(
-        "TransactionCreated",
+        logLabel,
         JSON.stringify({
           transactionId: transaction.id,
           status: transaction.status,
