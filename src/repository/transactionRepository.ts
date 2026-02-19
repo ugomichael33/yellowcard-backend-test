@@ -23,6 +23,7 @@ type IdempotencyRecord = {
   sk: string;
   transactionId: string;
   createdAt: string;
+  expiresAt: number;
   entityType: "IDEMPOTENCY";
 };
 
@@ -55,11 +56,14 @@ export async function createTransaction(
   idempotencyKey?: string
 ): Promise<CreateResult> {
   if (idempotencyKey) {
+    const ttlSeconds = Number(process.env.IDEMPOTENCY_TTL_SECONDS ?? "86400");
+    const expiresAt = Math.floor(Date.now() / 1000) + ttlSeconds;
     const lock: IdempotencyRecord = {
       pk: idempotencyPk(idempotencyKey),
       sk: idempotencySk(idempotencyKey),
       transactionId: tx.id,
       createdAt: tx.createdAt,
+      expiresAt,
       entityType: "IDEMPOTENCY",
     };
     try {

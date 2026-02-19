@@ -47,7 +47,11 @@ function getSqsClient(): SQSClient {
 export const ddbDoc = getDdbClient();
 export const sqs = getSqsClient();
 
-export function json(statusCode: number, body: unknown) {
+export function json(
+  statusCode: number,
+  body: unknown,
+  extraHeaders?: Record<string, string>
+) {
   return {
     statusCode,
     headers: {
@@ -56,6 +60,7 @@ export function json(statusCode: number, body: unknown) {
       "access-control-allow-headers":
         "content-type,x-idempotency-key,idempotency-key",
       "access-control-allow-methods": "GET,POST,OPTIONS",
+      ...(extraHeaders ?? {}),
     },
     body: JSON.stringify(body),
   };
@@ -69,11 +74,13 @@ export function logMetric(params: {
   value: number;
   unit?: "Count" | "Milliseconds";
   dimensions?: MetricDimension;
+  context?: Record<string, string>;
 }) {
-  const { namespace, name, value, unit = "Count", dimensions } = params;
+  const { namespace, name, value, unit = "Count", dimensions, context } = params;
   const dimensionsKeys = dimensions ? Object.keys(dimensions) : [];
 
   const emfPayload = {
+    ...(context ?? {}),
     ...(dimensions ?? {}),
     [name]: value,
     _aws: {

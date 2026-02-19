@@ -19,13 +19,24 @@ Transaction lifecycle: `PENDING → PROCESSING → COMPLETED | FAILED`
 
 Idempotency: Provide an `Idempotency-Key` header to ensure safe retries.
 Processing delay: The worker simulates async work with `PROCESSING_DELAY_MS` (default `500ms`).
+Tracing: Optional `X-Correlation-Id` is echoed in responses and propagated to logs/metrics.
 
 ## Design & Tradeoffs
 - Event-driven async processing (API → DynamoDB → SQS → Worker) for durability and decoupling.
 - Idempotency via `Idempotency-Key` to prevent duplicate transactions on retries.
+- Idempotency records expire via DynamoDB TTL (default 24h) to prevent unbounded growth.
 - Conditional writes in DynamoDB enforce safe state transitions.
 - DLQ configured for failed async processing.
-- LocalStack-first configuration for assessment; production would remove fixed `AWS_ENDPOINT_URL`.
+- LocalStack-specific endpoint is injected via SAM parameter; production deploys omit it.
+
+### Local vs prod endpoint
+The SAM template exposes `AwsEndpointUrl` (default empty). The local deploy script sets it to
+`http://localstack:4566`. For real AWS, omit the parameter so the SDK uses default endpoints.
+
+## Retry & visibility
+- SQS retry is configured via `maxReceiveCount: 3` with a DLQ for poison messages.
+- Queue `VisibilityTimeout` is set to 30s, above the Lambda timeout (10s) to avoid premature retries.
+- In production, tune these values alongside Lambda timeout and expected processing time.
 
 ## Prereqs
 - Docker + Docker Compose
@@ -70,6 +81,7 @@ docker compose run --rm deploy env RUN_INTEGRATION_TESTS=1 API_BASE="$API_BASE" 
 ## Suggested CI split
 - `npm test` (unit tests) on every push/PR.
 - `npm run test:integration` only in a dedicated job with LocalStack available.
+Minimal GitHub Actions workflow is included under `.github/workflows/ci.yml`.
 
 ## Tear down
 ```bash

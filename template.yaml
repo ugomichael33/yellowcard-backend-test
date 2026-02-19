@@ -2,6 +2,15 @@ AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: Yellow Card Backend Test - Transaction Service (SAM + LocalStack)
 
+Parameters:
+  AwsEndpointUrl:
+    Type: String
+    Default: ""
+    Description: Optional endpoint override (LocalStack). Leave empty for AWS.
+
+Conditions:
+  HasAwsEndpointUrl: !Not [!Equals [!Ref AwsEndpointUrl, ""]]
+
 Globals:
   Function:
     Runtime: nodejs20.x
@@ -11,7 +20,11 @@ Globals:
       Variables:
         TABLE_NAME: !Ref TransactionsTable
         AWS_NODEJS_CONNECTION_REUSE_ENABLED: "1"
-        AWS_ENDPOINT_URL: "http://localstack:4566"
+        AWS_ENDPOINT_URL: !If
+          - HasAwsEndpointUrl
+          - !Ref AwsEndpointUrl
+          - !Ref "AWS::NoValue"
+        IDEMPOTENCY_TTL_SECONDS: "86400"
 
 Resources:
   Api:
@@ -29,6 +42,9 @@ Resources:
     Properties:
       TableName: transactions
       BillingMode: PAY_PER_REQUEST
+      TimeToLiveSpecification:
+        AttributeName: expiresAt
+        Enabled: true
       AttributeDefinitions:
         - AttributeName: pk
           AttributeType: S
@@ -49,6 +65,7 @@ Resources:
     Type: AWS::SQS::Queue
     Properties:
       QueueName: transaction-queue
+      VisibilityTimeout: 30
       RedrivePolicy:
         deadLetterTargetArn: !GetAtt TransactionDLQ.Arn
         maxReceiveCount: 3

@@ -27,6 +27,7 @@ sam deploy \
   --no-fail-on-empty-changeset \
   --capabilities CAPABILITY_IAM \
   --s3-bucket sam-artifacts \
+  --parameter-overrides AwsEndpointUrl="$ENDPOINT" \
   --region "${AWS_DEFAULT_REGION:-us-east-1}"
 
 echo "==> Stack outputs"

@@ -4,6 +4,7 @@ import { processTransaction } from "./service/transactionService";
 
 type MessageBody = {
   transactionId?: string;
+  correlationId?: string;
 };
 
 export async function handler(event: SQSEvent) {
@@ -12,9 +13,11 @@ export async function handler(event: SQSEvent) {
     Number.isFinite(delayMsRaw) && delayMsRaw > 0 ? delayMsRaw : 0;
 
   for (const record of event.Records) {
+    let correlationId = record.messageId;
     try {
       const body = JSON.parse(record.body ?? "{}") as MessageBody;
       const transactionId = body.transactionId;
+      correlationId = body.correlationId ?? record.messageId;
       if (!transactionId) {
         console.warn("Skipping message without transactionId", record.messageId);
         continue;
@@ -22,7 +25,7 @@ export async function handler(event: SQSEvent) {
       const result = await processTransaction(transactionId, undefined, delayMs);
       console.log(
         "TransactionProcessed",
-        JSON.stringify({ transactionId, ...result })
+        JSON.stringify({ transactionId, correlationId, ...result })
       );
       if (result.processed && result.status) {
         logMetric({
@@ -30,10 +33,15 @@ export async function handler(event: SQSEvent) {
           name: "TransactionProcessed",
           value: 1,
           dimensions: { Status: result.status },
+          context: { correlationId },
         });
       }
     } catch (err: any) {
-      console.error("processTransaction error", err);
+      console.error(
+        "processTransaction error",
+        JSON.stringify({ correlationId }),
+        err
+      );
       throw err;
     }
   }
