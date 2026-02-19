@@ -18,6 +18,7 @@ API Gateway
 Transaction lifecycle: `PENDING → PROCESSING → COMPLETED | FAILED`
 
 Idempotency: Provide an `Idempotency-Key` header to ensure safe retries.
+Processing delay: The worker simulates async work with `PROCESSING_DELAY_MS` (default `500ms`).
 
 ## Prereqs
 - Docker + Docker Compose
