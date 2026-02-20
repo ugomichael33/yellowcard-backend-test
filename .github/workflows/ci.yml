@@ -24,6 +24,6 @@ jobs:
       - name: Start LocalStack
         run: docker compose up -d localstack
       - name: Deploy stack
-        run: docker compose run --rm deploy
+        run: docker compose run --rm -e AWS_ENDPOINT_URL=http://localstack:4566 deploy
       - name: Run integration tests
-        run: docker compose run --rm --entrypoint sh deploy -lc "npm run test:integration"
+        run: docker compose run --rm -e AWS_ENDPOINT_URL=http://localstack:4566 --entrypoint sh deploy -lc "npm run test:integration"

@@ -30,14 +30,46 @@ async function getApiBaseUrl(): Promise<string> {
 function normalizeApiBase(apiBase: string) {
   let normalized = apiBase.replace(/\/$/, "");
   if (isRunningInDocker()) {
-    normalized = normalized.replace("http://localhost:", "http://host.docker.internal:");
-    normalized = normalized.replace("http://127.0.0.1:", "http://host.docker.internal:");
+    const localstackHost = resolveLocalstackHost();
+    if (localstackHost) {
+      normalized = normalized.replace(
+        "http://localhost:",
+        `http://${localstackHost}:`
+      );
+      normalized = normalized.replace(
+        "http://127.0.0.1:",
+        `http://${localstackHost}:`
+      );
+    } else {
+      normalized = normalized.replace(
+        "http://localhost:",
+        "http://host.docker.internal:"
+      );
+      normalized = normalized.replace(
+        "http://127.0.0.1:",
+        "http://host.docker.internal:"
+      );
+    }
   }
   return normalized;
 }
 
 function isRunningInDocker() {
   return existsSync("/.dockerenv");
+}
+
+function resolveLocalstackHost() {
+  if (process.env.LOCALSTACK_HOSTNAME) {
+    return process.env.LOCALSTACK_HOSTNAME;
+  }
+  if (process.env.AWS_ENDPOINT_URL) {
+    try {
+      return new URL(process.env.AWS_ENDPOINT_URL).hostname;
+    } catch {
+      return null;
+    }
+  }
+  return null;
 }
 
 async function postJson(url: string, payload: unknown, headers?: Record<string, string>) {
