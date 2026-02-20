@@ -88,6 +88,12 @@ docker compose run --rm deploy env RUN_INTEGRATION_TESTS=1 API_BASE="$API_BASE" 
 - `npm run test:integration` only in a dedicated job with LocalStack available.
 Minimal GitHub Actions workflow is included under `.github/workflows/ci.yml`.
 
+## Future improvements (production hardening)
+- AuthN/AuthZ (JWT or API keys) + rate limiting at API Gateway.
+- Distributed tracing + alerts (X-Ray, CloudWatch alarms, dashboards).
+- Environment separation for prod/stage (parameterized endpoints, secrets, and IAM).
+- Explicit retry/backoff policies and DLQ monitoring/alerts.
+
 ## Tear down
 ```bash
 docker compose run --rm deploy ./scripts/destroy.sh
