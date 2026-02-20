@@ -21,13 +21,17 @@ echo "==> SAM build"
 sam build
 
 echo "==> SAM deploy (CloudFormation to LocalStack)"
+ALLOW_TEST_OUTCOMES_PARAM=""
+if echo "$ENDPOINT" | grep -q "localstack"; then
+  ALLOW_TEST_OUTCOMES_PARAM="AllowTestOutcomes=1"
+fi
 sam deploy \
   --stack-name yellowcard-tx-svc \
   --no-confirm-changeset \
   --no-fail-on-empty-changeset \
   --capabilities CAPABILITY_IAM \
   --s3-bucket sam-artifacts \
-  --parameter-overrides AwsEndpointUrl="$ENDPOINT" \
+  --parameter-overrides AwsEndpointUrl="$ENDPOINT" $ALLOW_TEST_OUTCOMES_PARAM \
   --region "${AWS_DEFAULT_REGION:-us-east-1}"
 
 echo "==> Stack outputs"

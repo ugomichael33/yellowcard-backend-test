@@ -7,6 +7,13 @@ Parameters:
     Type: String
     Default: ""
     Description: Optional endpoint override (LocalStack). Leave empty for AWS.
+  AllowTestOutcomes:
+    Type: String
+    Default: "0"
+    AllowedValues:
+      - "0"
+      - "1"
+    Description: Enable test-only forced processing outcomes (LocalStack).
 
 Conditions:
   HasAwsEndpointUrl: !Not [!Equals [!Ref AwsEndpointUrl, ""]]
@@ -24,6 +31,7 @@ Globals:
           - HasAwsEndpointUrl
           - !Ref AwsEndpointUrl
           - !Ref "AWS::NoValue"
+        ALLOW_TEST_OUTCOMES: !Ref AllowTestOutcomes
         IDEMPOTENCY_TTL_SECONDS: "86400"
 
 Resources:

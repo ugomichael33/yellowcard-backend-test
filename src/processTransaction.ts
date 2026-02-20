@@ -5,6 +5,7 @@ import { processTransaction } from "./service/transactionService";
 type MessageBody = {
   transactionId?: string;
   correlationId?: string;
+  forceOutcome?: "COMPLETED" | "FAILED";
 };
 
 export async function handler(event: SQSEvent) {
@@ -22,7 +23,16 @@ export async function handler(event: SQSEvent) {
         console.warn("Skipping message without transactionId", record.messageId);
         continue;
       }
-      const result = await processTransaction(transactionId, undefined, delayMs);
+      const allowTestOutcomes = process.env.ALLOW_TEST_OUTCOMES === "1";
+      const forcedOutcome =
+        allowTestOutcomes && body.forceOutcome ? body.forceOutcome : undefined;
+      const outcomeDecider = forcedOutcome
+        ? () =>
+            forcedOutcome === "FAILED"
+              ? { status: "FAILED", errorReason: "FORCED_FAILURE" }
+              : { status: "COMPLETED" }
+        : undefined;
+      const result = await processTransaction(transactionId, outcomeDecider, delayMs);
       console.log(
         "TransactionProcessed",
         JSON.stringify({ transactionId, correlationId, ...result })

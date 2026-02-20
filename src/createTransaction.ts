@@ -52,12 +52,17 @@ export async function handler(event: APIGatewayProxyEventV2) {
       created || (transaction.status === "PENDING" && typeof idempotencyKey === "string");
 
     if (shouldEnqueue) {
+      const allowTestOutcomes = process.env.ALLOW_TEST_OUTCOMES === "1";
+      const simulateFailure =
+        allowTestOutcomes && payload?.simulateFailure === true;
+
       await sqs.send(
         new SendMessageCommand({
           QueueUrl: QUEUE_URL,
           MessageBody: JSON.stringify({
             transactionId: transaction.id,
             correlationId,
+            ...(simulateFailure ? { forceOutcome: "FAILED" } : {}),
           }),
         })
       );

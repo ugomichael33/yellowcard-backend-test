@@ -33,6 +33,11 @@ Tracing: Optional `X-Correlation-Id` is echoed in responses and propagated to lo
 The SAM template exposes `AwsEndpointUrl` (default empty). The local deploy script sets it to
 `http://localstack:4566`. For real AWS, omit the parameter so the SDK uses default endpoints.
 
+### Test-only failure hook
+For integration tests, the local deploy sets `AllowTestOutcomes=1`. If you send
+`{"simulateFailure": true}` in the POST body, the worker forces the transaction to `FAILED`.
+This is disabled by default and should remain off in real AWS.
+
 ## Retry & visibility
 - SQS retry is configured via `maxReceiveCount: 3` with a DLQ for poison messages.
 - Queue `VisibilityTimeout` is set to 30s, above the Lambda timeout (10s) to avoid premature retries.

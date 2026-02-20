@@ -57,4 +57,12 @@ describe("transaction service", () => {
       errorReason: "SIMULATED",
     });
   });
+
+  test("processTransaction rejects invalid outcome transition", async () => {
+    repo.updateStatus.mockResolvedValueOnce(true);
+    await expect(
+      service.processTransaction("txn-3", () => ({ status: "PENDING" } as any))
+    ).rejects.toThrow("Invalid transition");
+    expect(repo.updateStatus).toHaveBeenCalledTimes(1);
+  });
 });

@@ -105,13 +105,31 @@ async function pollTransaction(apiBase: string, id: string, timeoutMs = 15000) {
     const firstRes = await postJson(`${apiBase}/transactions`, payload, {
       "Idempotency-Key": idempotencyKey,
     });
+    expect(firstRes.status).toBe(201);
     const first = await firstRes.json();
 
     const secondRes = await postJson(`${apiBase}/transactions`, payload, {
       "Idempotency-Key": idempotencyKey,
     });
+    expect(secondRes.status).toBe(200);
     const second = await secondRes.json();
 
     expect(first.id).toBe(second.id);
+  });
+
+  test("Forced failure results in FAILED and increments attempts", async () => {
+    const apiBase = await getApiBaseUrl();
+    const reference = `FAIL-${Date.now()}`;
+    const createRes = await postJson(`${apiBase}/transactions`, {
+      amount: 10,
+      currency: "USD",
+      reference,
+      simulateFailure: true,
+    });
+    expect(createRes.status).toBe(201);
+    const created = await createRes.json();
+    const final = await pollTransaction(apiBase, created.id);
+    expect(final.status).toBe("FAILED");
+    expect(final.processingAttempts).toBeGreaterThanOrEqual(1);
   });
 });
